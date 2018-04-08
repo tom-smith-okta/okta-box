@@ -1,0 +1,390 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Box Platform + Okta</title>
+
+	<!-- CSS -->
+
+	<!-- Custom styles for this template -->
+	<link href="/css/carousel.css" rel="stylesheet">
+
+	<!-- BOOTSTRAP CSS -->
+	<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+<!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous"> -->
+
+	<link rel="stylesheet" href="https://cdn01.boxcdn.net/platform/elements/4.0.1/en-US/explorer.css" />
+
+	<link href="https://ok1static.oktacdn.com/assets/js/sdk/okta-signin-widget/2.6.0/css/okta-sign-in.min.css" type="text/css" rel="stylesheet">
+
+	<style>
+
+	#app-container, #signoutDiv, #loadingDiv
+	{
+		display: none;
+	}
+	</style>
+
+<!-- ********** JAVASCRIPT ***************** -->
+
+<!-- OKTA AUTHN WIDGET -->
+
+<script src="https://ok1static.oktacdn.com/assets/js/sdk/okta-auth-js/1.8.0/okta-auth-js.min.js" type="text/javascript"></script>
+
+<script src="https://ok1static.oktacdn.com/assets/js/sdk/okta-signin-widget/2.6.0/js/okta-sign-in.min.js" type="text/javascript"></script>
+
+<!-- JQUERY -->
+<script
+  src="https://code.jquery.com/jquery-3.2.1.min.js"
+  integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+  crossorigin="anonymous"></script>
+
+<!-- BOOTSTRAP JS-->
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+
+<!-- BOX JS-->
+
+<script src="https://cdn.polyfill.io/v2/polyfill.min.js?features=es6,Intl"></script>
+
+<script src="https://cdn01.boxcdn.net/platform/elements/4.0.1/en-US/explorer.js"></script>
+
+<script>
+
+function showBoxUI(boxAccessToken) {
+	console.log("the box access token is: " + boxAccessToken);
+
+	var folderId = '0';
+
+	var contentExplorer = new Box.ContentExplorer();
+	contentExplorer.show(folderId, boxAccessToken, {
+		container: '#app-container',
+		logoUrl: 'box'
+		// logoUrl: 'https://www.okta.com/sites/all/themes/Okta/images/blog/Logos/Okta_Logo_BrightBlue_Medium.png'
+	})
+
+	$("#app-container").show();
+}
+
+</script>
+
+<script>
+
+window.onload = function() {
+
+	authClient = new OktaAuth({
+		url: '{{baseUrl}}',
+		clientId: '{{clientId}}',
+		redirectUri: '{{OKTA_REDIRECT_URI}}'
+	})
+
+	authClient.session.exists()
+	.then(function(exists) {
+		if (exists) {
+			console.log("the user has a session")
+
+			$("#loginLink").hide()
+			$("#registerLink").hide()
+
+			authClient.token.getWithoutPrompt({
+				responseType: ['id_token', 'token'], // or array of types
+				scopes: ['openid', 'email', 'profile']
+			})
+			.then(function(tokenOrTokens) {
+				console.dir(tokenOrTokens)
+				console.log("the id token is: " + tokenOrTokens[0].idToken)
+				console.log("the access token is: " + tokenOrTokens[1].accessToken)
+
+				showApp(tokenOrTokens[1].accessToken)
+
+			})
+			.catch(function(err) {
+				// handle OAuthError
+			})
+		} else {
+			console.log("the user is not logged in")
+			var html = ""
+			html += "<h2>Welcome!</h2>"
+			html += "<p style = 'margin-bottom: 250px'>Please click \"register\" to begin,"
+			html += "<br>or log in if you already have an account.</p>"
+
+			$("#mainMsg").html(html)
+			$("#signoutLink").hide()
+		}
+	})
+
+	if (window.location.hash) {
+
+		var arr = window.location.href.split("#")
+
+		var a = arr[1].split("&")
+
+		var b = a[0].split("=")
+
+		var id_token = b[1]
+
+		var c = a[1].split("=")
+
+		var state = c[1]
+
+		var d = state.split("_")
+
+		var assetID = d[1]
+
+		console.log("the id_token is: " + id_token)
+		console.log("the state is: " + state)
+		console.log("the assetID is: " + assetID)
+
+		$("#myModal").modal()
+
+		$("#ui").html("<div style = 'width:100%; text-align: center;'><p>loading...</p></div>")
+
+		$.post( "/getAsset", { id_token: id_token, assetID: assetID }, function(data) {
+			console.log("got a response:")
+			console.dir(data)
+			console.log("the image url is:" + data.imgURL)
+
+			$("#ui").html("<div style = 'width:100%; text-align: center;'><img src='" + data.imgURL + "'></div>")
+
+		}, "json" )
+	}
+}
+
+$("#myModal").on("hidden.bs.modal", function () {
+	$("#ui").html("")
+})
+
+</script>
+
+
+<script>
+
+	function showApp(accessToken) {
+
+		console.log("getting ready to send the id token to /boxUI")
+
+		$.post( "/boxUI", { accessToken: accessToken }, function(json) {
+			console.log("the message back is: " + json.accessToken)
+			var boxAccessToken = json.accessToken
+			showBoxUI(boxAccessToken)
+		})
+		// .done(function( boxAccessToken ) {
+
+		// });
+	}
+
+</script>
+
+<script>
+
+function renderWidget() {
+	var orgUrl = '{{baseUrl}}'
+	var oktaSignIn = new OktaSignIn({baseUrl: orgUrl})
+
+	$("#ui").html("")
+
+	$("#myModal").modal()
+
+	$("okta-login-container").css( "display", "block" )
+
+	oktaSignIn.renderEl(
+		{ el: '#okta-login-container' },
+		function (res) {
+			if (res.status === 'SUCCESS') { res.session.setCookieAndRedirect("{{OKTA_REDIRECT_URI}}"); }
+		}
+	)
+}
+
+</script>
+
+
+<script>
+function evaluateForm(type = "register") {
+
+	$.post( "/evaluateRegForm", $( "#regForm" ).serialize(), function(json) {
+		if (json.msg != "success") {
+			$("#ui").html("sorry! " + json.msg)
+		}
+		else {
+			var emailLink = "<a href = 'https://www.mailinator.com/v2/inbox.jsp?zone=public&query="
+			emailLink += json.email + "' target='_blank'>" + json.email + "</a>"
+
+			var html = "<p>Thank you for registering, " + json.firstName + "!</p>"
+			html += "<p>Please check your email (" + emailLink + ") to finish setting up your account.</p>"
+
+			$("#ui").html(html)
+		}
+	})
+}
+
+function register() {
+	var html = ""
+
+	html += '<form id = "regForm" onsubmit="event.preventDefault(); evaluateForm(\'register\')">'
+	html += '<div class="form-group"><label for="firstName">First name:</label><input type="text" class="form-control" id="firstName" name="firstName" required=""></div>'
+	html += '<div class="form-group"><label for="lastName">Last name:</label><input type="text" class="form-control" id="lastName" name="lastName" required=""></div>'
+	html += '<div class="form-group"><label for="email">email:</label><input type="email" class="form-control" id="email" name="email" data-parsley-trigger="change" required=""></div>'
+	html += '<input type = "submit">'
+	html += '</form>'
+
+	$("#modal-title-element").html("Register")
+
+	$("#ui").html(html)
+
+	$("#myModal").modal()
+}
+
+</script>
+
+<script>
+	function signOut() {
+		authClient.signOut()
+		.then(function() {
+			console.log('successfully logged out')
+			$("#signoutLink").hide()
+			$("#loginLink").show()
+			$("#registerLink").show()
+			$("#app-container").hide()
+			// $("#username").html("<i>not logged in</i>")
+		})
+		.fail(function(err) {
+		  console.error(err);
+		});
+	}
+</script>
+
+</head>
+
+
+<!-- NAVBAR
+================================================== -->
+  <body>
+    <div class="navbar-wrapper">
+      <div class="container">
+
+        <nav class="navbar navbar-inverse navbar-static-top">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              <a class="navbar-brand" href="#">Big Project</a>
+            </div>
+            <div id="navbar" class="navbar-collapse collapse">
+              <ul class="nav navbar-nav">
+                <li class="active"><a href="#">Home</a></li>
+                <li id = "loginLink"><a href="#" onclick="event.preventDefault(); renderWidget()">Log in</a></li>
+                <li id = "registerLink"><a href="#" onclick="event.preventDefault(); register()">Register</a></li>
+                <li id = "signoutLink"><a href="#" onclick="event.preventDefault(); signOut()" id="signout">Sign out</a></li>
+                <li id = "mfaLink"><a href="/checkAsset?assetID=12345" id="mfa">Get MFA-protected asset</a></li>
+                <li id = "mfaLink"><a href="/img/MFAonly-OIDC.png" id="mfa" target="_blank">MFA-only flow</a></li>
+              </ul>
+            </div>
+          </div>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Carousel
+    ================================================== -->
+    <div id="myCarousel" class="carousel slide" data-ride="carousel">
+      <div class="carousel-inner" role="listbox">
+        <div class="item active">
+          <img class="first-slide" src="https://s3.amazonaws.com/tom-smith-okta-demo-images/newYork2.png" alt="First slide">
+          <div class="container">
+            <div class="carousel-caption">
+            	<div id="mainMsg">
+<!--               		<h2>Thanks for participating!</h2>
+              		<p style = "margin-bottom: 250px">Please click "register" to begin.</p>
+
+ -->              	
+					<div id = "boxUI">
+						<div id = "app-container"></div>
+						<div>
+							<button type="button" class="close" aria-label="Close">Finished</button>
+						</div>
+					</div>
+
+				</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div><!-- /.carousel -->
+
+
+    <!-- Marketing messaging and featurettes
+    ================================================== -->
+    <!-- Wrap the rest of the page in another container to center all the content. -->
+
+<!-- Modal -->
+<div id="myModal" class="modal fade" role="dialog">
+  <div class="modal-dialog">
+
+    <!-- Modal content-->
+    <div class="modal-content">
+      <div class="modal-header" style="text-align: center;">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <table border =0 width = "100%">
+        	<tr>
+        		<td><img src = "https://s3.amazonaws.com/tom-smith-okta-demo-images/Resources_BoxPlatform400.jpg" width = "250"></td>
+        		<td><img src = "https://s3.amazonaws.com/tom-smith-okta-demo-images/oktaLogo.png" width="175"></td>
+        	</tr>
+        </table>
+        
+        <h4 class="modal-title" style="margin-top: 10px" id="modal-title-element"></h4>
+      </div>
+      <div class="modal-body" id="ui"></div>
+      <div id="okta-login-container"></div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+      <div class="row featurette">
+        <div class="col-md-7">
+          <h2 class="featurette-heading">Great Projects start with you.</h2>
+        </div>
+      </div>
+
+
+    <div class="container marketing">
+
+      <!-- START THE FEATURETTES -->
+
+      <hr class="featurette-divider">
+
+<!--       <div class="row featurette">
+        <div class="col-md-7">
+          <h2 class="featurette-heading">Great Projects start with you.</h2>
+        </div>
+      </div> -->
+
+      <!-- /END THE FEATURETTES -->
+
+      <!-- FOOTER -->
+      <footer>
+        <p>&copy; Big Project, Inc. &middot; <a href="#">Privacy</a> &middot; <a href="#">Terms</a></p>
+      </footer>
+
+    </div><!-- /.container -->
+
+
+  </body>
+</html>
