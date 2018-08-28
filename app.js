@@ -150,6 +150,9 @@ app.post('/getAsset', function(req, res) {
 
 		var obj = JSON.parse(body)
 
+		console.log("the response from /introspect is: ")
+		console.dir(body)
+
 		if (obj.active === true) {
 			var imgURL = "/img/gameboy.jpg"
 
