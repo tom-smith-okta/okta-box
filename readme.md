@@ -26,8 +26,6 @@ For configuration, copy the the .env_example file to a file called
 
 and fill in the appropriate values.
 
-*NOTE: if you are not interested in the MFA-only piece (see below) you can ignore the OKTA_MFA_ settings.*
-
 When you set up your Box application, you will get a private key. Store this key in
 
 /boxKey.pem
@@ -36,15 +34,3 @@ Now you can run the app:
 ```
 node app.js
 ```
-
-___
-
-MFA-only via OIDC - Beta/undocumented/experimental/unsupported
-
-This repo also illustrates Okta's "MFA only via OIDC" capability - in beta as of April 2018.
-
-You can explore this capability by clicking on the "Get MFA-protected Asset" link. The answer to the security question is
-
-okta
-
-The "MFA-only flow" shows how this flow works. It is completely independent of any other Okta session: the user will be challenged for MFA regardless of whether they already have an Okta session.
