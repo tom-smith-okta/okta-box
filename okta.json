@@ -1,0 +1,7 @@
+{
+	"name": "okta + box platform integration",
+	"description": "use okta as an identity provider for box platform deployments",
+	"url": "https://okta-box.herokuapp.com/",
+	"categories": ["box", "box platform", "user management", "authentication", "authorization", "mfa", "hooks", "sso", "integrationNetwork", "socialAuthentication", "apiAuthentication", "identity"],
+	"logo": "https://developer.okta.com/logo.png"
+}
